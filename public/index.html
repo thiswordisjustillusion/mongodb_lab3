@@ -1,0 +1,165 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>lab3</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+</head>
+<body>
+
+    
+
+    <form name="movieForm">
+        <input type="hidden" name="id" value="0" />
+        <div class="form-group">
+            <label for="name">Название:</label>
+            <input class="form-control" name="name" />
+        </div>
+        <div class="form-group">
+            <label for="age">Год выхода:</label>
+            <input class="form-control" name="age" />
+        </div>
+        
+        <div class="panel-body">
+            
+            <button type="submit" class="btn btn-sm btn-primary">Сохранить</button>
+            <a id="reset" class="btn btn-sm btn-primary">Сбросить</a>
+        </div>
+    </form>
+    <table class="table table-condensed table-striped table-bordered">
+        <thead><tr><th>Название</th><th>Год выхода</th><th></th></tr></thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    
+  
+    <script>
+        // Получение всех фильмов
+        function GetMovies() {
+            $.ajax({
+                url: "/movies",
+                type: "GET",
+                contentType: "application/json",
+                success: function (movies) {
+                    var rows = "";
+                    $.each(movies, function (index, movie) {
+                        // добавляем полученные элементы в таблицу
+                        rows += row(movie);
+                    })
+                    $("table tbody").append(rows);
+                 }
+            });
+        }
+        // Получение одного фильма
+        function GetMovie(id) {
+            $.ajax({
+                url: "/movies/"+id,
+                type: "GET",
+                contentType: "application/json",
+                success: function (movie) {
+                    var form = document.forms["movieForm"];
+                    form.elements["id"].value = movie._id;
+                    form.elements["name"].value = movie.name;
+                    form.elements["age"].value = movie.age;
+                }
+            });
+        }
+        // Добавление фильма
+        function CreateMovie(movieName, movieAge) {
+            $.ajax({
+                url: "/movies",
+                contentType: "application/json",
+                method: "POST",
+                data: JSON.stringify({
+                    name: movieName,
+                    age: movieAge
+                }),
+                success: function (movie) {
+                    reset();
+                    $("table tbody").append(row(movie));
+                }
+            })
+        }
+        // Изменение фильма
+        function EditMovie(movieId, movieName, movieAge) {
+            $.ajax({
+                url: "/movies",
+                contentType: "application/json",
+                method: "PUT",
+                data: JSON.stringify({
+                    id: movieId,
+                    name: movieName,
+                    age: movieAge
+                }),
+                success: function (movie) {
+                    reset();
+                    console.log(movie);
+                    $("tr[data-rowid='" + movie._id + "']").replaceWith(row(movie));
+                }
+            })
+        }
+  
+        // сброс формы
+        function reset() {
+            var form = document.forms["movieForm"];
+            form.reset();
+            form.elements["id"].value = 0;
+        }
+  
+        // Удаление фильма
+        function DeleteMovie(id) {
+            $.ajax({
+                url: "/movies/"+id,
+                contentType: "application/json",
+                method: "DELETE",
+                success: function (movie) {
+                    console.log(movie);
+                    $("tr[data-rowid='" + movie._id + "']").remove();
+                }
+            })
+        }
+        // создание строки для таблицы
+        var row = function (movie) {
+            return "<tr data-rowid='" + movie._id + "'><td>" + movie.name + "</td> <td>" + movie.age + "</td>" +
+                   "<td><a class='editLink' data-id='" + movie._id + "'>Изменить</a> | " +
+                    "<a class='removeLink' data-id='" + movie._id + "'>Удалить</a></td></tr>";
+        }
+        // сброс значений формы
+        $("#reset").click(function (e) {
+  
+            e.preventDefault();
+            reset();
+        })
+  
+        // отправка формы
+        $("form").submit(function (e) {
+            e.preventDefault();
+            var id = this.elements["id"].value;
+            var name = this.elements["name"].value;
+            var age = this.elements["age"].value;
+            if (id == 0)
+                CreateMovie(name, age);
+            else
+                EditMovie(id, name, age);
+        });
+  
+        // нажимаем на ссылку Изменить
+        $("body").on("click", ".editLink", function () {
+            var id = $(this).data("id");
+            GetMovie(id);
+        })
+        // нажимаем на ссылку Удалить
+        $("body").on("click", ".removeLink", function () {
+            var id = $(this).data("id");
+            DeleteMovie(id);
+        })
+  
+        
+        GetMovies();
+    </script>
+</body>
+</html>
